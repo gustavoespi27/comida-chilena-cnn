@@ -147,3 +147,31 @@ Se reutiliza el proceso con el que se construyó este dataset. Se ejecuta **en e
 **Revisar cada script antes de ejecutarlo:** fueron escritos para las 8 clases actuales y pueden necesitar ajustes de rutas o de nombres.
 
 Para un dataset de otro tema conviene unas **8 clases visualmente distintas, con 100 a 150 imágenes limpias cada una**.
+
+## 9. Si el profesor entrega scripts de limpieza para mejorar
+
+Flujo de trabajo:
+1. **Explicar primero** qué hace el script original, bloque por bloque, en lenguaje simple.
+2. Señalar **problemas concretos** (con el número de línea) y casos que no cubre.
+3. Entregar la **versión mejorada completa**, con comentarios en español, manteniendo el estilo y los nombres del profesor cuando sea posible.
+4. Incluir una **tabla "antes → después"** de las mejoras y una celda para probarlo en Colab sobre este dataset (ver la sección 8.A para clonar el repositorio).
+5. Recordar al estudiante que lo ejecute y pegue la salida; corregir según los errores reales.
+
+Mejoras de referencia (varias ya existen en `scripts/limpiar_y_revisar.py`, `aplicar_revision.py` y `renumerar.py`, que se pueden citar como ejemplo):
+
+| Problema típico | Mejora |
+|---|---|
+| Archivos dañados o que no son imágenes | `Image.open(...).verify()` dentro de `try/except`, y volver a abrir la imagen después (porque `verify()` la deja inutilizable) |
+| Modos de color distintos (L, RGBA, P, CMYK) | `.convert("RGB")` antes de guardar |
+| Extensiones mezcladas (`.JPG`, `.jpeg`, `.png`, `.webp`) | Normalizar con `p.suffix.lower()` y guardar todo como `.jpg` |
+| Duplicados exactos | Hash MD5 de los píxeles |
+| Casi-duplicados (la misma foto con otro tamaño o compresión) | Hash perceptual `imagehash.phash`, con distancia de Hamming ≤ 6 |
+| Miniaturas o imágenes muy pequeñas | Descartar si el lado menor es < 150 px |
+| Imágenes casi vacías (todo blanco o negro) | Desviación estándar de los píxeles muy baja |
+| Borrar archivos de forma irreversible | **Mover** a `dataset_descartes/<motivo>/<clase>/` en lugar de borrar |
+| Sin registro de lo que se hizo | CSV o resumen por clase: revisadas, descartadas (por motivo), finales |
+| Valores fijos dentro del código | Constantes arriba (`UMBRAL`, `MIN_LADO`, rutas) o argumentos |
+| Nombres desordenados | Renumerar `<clase>_0001.jpg`, … en dos fases (nombres temporales) para no sobrescribir |
+| Volver a ejecutar estropea el resultado | Que sea **idempotente**: escribir en otra carpeta, no en la de origen |
+| Rutas de Windows o de Colab escritas a mano | `pathlib.Path` y rutas relativas |
+| Lento con muchas imágenes | `ThreadPoolExecutor` para leer o descargar en paralelo |
