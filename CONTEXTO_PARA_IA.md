@@ -91,3 +91,59 @@ Pruebas hechas en una RTX 4060 (Keras 3 con motor PyTorch, porque TensorFlow no 
 - No cambiar los nombres de carpetas, clases, archivos de modelo ni la división de datos (semilla 42) sin avisar: las respuestas ya escritas dependen de ellos.
 - Si piden algo nuevo (por ejemplo, la guía NB06 de *Transfer Learning*), seguir el mismo estilo: copiar la guía original del profesor, adaptar textos y rutas al dataset de comida chilena, usar la celda que clona el repositorio y agregar al final una sección con evidencias y respuestas a la actividad.
 - Si el usuario pega resultados de Colab, usarlos para completar los **[ … ]** de las respuestas.
+
+## 8. Si el profesor pide cambios al dataset
+
+El asistente no puede ejecutar código ni descargar imágenes: debe **entregar código listo para ejecutar** y explicar cada paso. Nunca modificar `dataset_comida_chilena/` en su lugar; crear siempre una carpeta nueva (por ejemplo `dataset_v2/`), para no perder la versión entregada.
+
+### A. Cambios sobre las imágenes que ya existen (redimensionar, renombrar, convertir formato, separar en train/val/test, quitar o equilibrar clases, CSV de etiquetas, `.zip`)
+
+Entregar **una celda para Google Colab** con esta estructura:
+
+```python
+import subprocess, shutil
+from pathlib import Path
+from PIL import Image
+
+if not Path("comida-chilena-cnn").is_dir():
+    subprocess.run(["git", "clone", "--depth", "1",
+                    "https://github.com/gustavoespi27/comida-chilena-cnn.git"], check=True)
+ORIGEN = Path("comida-chilena-cnn/dataset_comida_chilena")
+DESTINO = Path("dataset_v2")
+DESTINO.mkdir(exist_ok=True)
+
+for carpeta in sorted(p for p in ORIGEN.iterdir() if p.is_dir()):
+    (DESTINO / carpeta.name).mkdir(exist_ok=True)
+    for foto in sorted(carpeta.glob("*.jpg")):
+        img = Image.open(foto).convert("RGB")
+        # ... aquí va el cambio pedido (ejemplo: img = img.resize((224, 224))) ...
+        img.save(DESTINO / carpeta.name / foto.name, "JPEG", quality=92)
+
+# Verificación: contar imágenes por clase
+for c in sorted(DESTINO.iterdir()):
+    print(c.name, len(list(c.glob("*"))))
+
+# Descargar el resultado
+shutil.make_archive("dataset_v2", "zip", DESTINO)
+from google.colab import files; files.download("dataset_v2.zip")
+```
+
+Para separar en train/val/test, usar `train_test_split` estratificado con `random_state=42` (igual que el NB03: 70/15/15) y copiar a `dataset_v2/train/<clase>/`, `val/<clase>/` y `test/<clase>/`.
+
+### B. Clases nuevas o un dataset distinto (hay que descargar imágenes)
+
+Se reutiliza el proceso con el que se construyó este dataset. Se ejecuta **en el PC del estudiante** (Windows, Python 3.12), desde la carpeta del repositorio:
+
+1. `pip install ddgs requests pillow imagehash`
+2. Editar el diccionario `CLASES` de `scripts/descargar_dataset.py`: para cada clase nueva, **unas 12 búsquedas distintas** (en español y en inglés, con variantes), porque el buscador entrega solo ~35 resultados por búsqueda. `OBJETIVO = 220` candidatos por clase. Para agregar clases a las existentes, dejar en `CLASES` **solo las nuevas**.
+3. `python scripts/descargar_dataset.py` → deja las fotos en `dataset_crudo/<clase>/` y las fuentes en `dataset_crudo/fuentes.csv`.
+4. `python scripts/limpiar_y_revisar.py duplicados` → mueve los casi-duplicados a `dataset_descartes/`.
+5. `python scripts/limpiar_y_revisar.py hojas` → crea en `revision/` hojas de contacto con miniaturas numeradas.
+6. **Revisión visual (la hace el estudiante):** mirar las hojas y anotar los números de las fotos que no muestran el plato terminado (ingredientes, preparación, afiches con texto, collages, personas, otros platos). Normalmente se descarta un 15–30 %. El asistente puede revisar las hojas si el estudiante las sube como imágenes al chat.
+7. Poner esos números en `DESCARTAR` de `scripts/aplicar_revision.py` y ejecutarlo → copia el resultado a `dataset_comida_chilena/`.
+8. `python scripts/renumerar.py` → renumera `<clase>_0001.jpg`, … y actualiza el CSV de fuentes.
+9. Si cambian las clases, actualizar `CLASES` en `scripts/generar_notebooks.py`, la tabla de la sección 2 de este archivo y el README. Luego ejecutar `python scripts/generar_notebooks.py`.
+
+**Revisar cada script antes de ejecutarlo:** fueron escritos para las 8 clases actuales y pueden necesitar ajustes de rutas o de nombres.
+
+Para un dataset de otro tema conviene unas **8 clases visualmente distintas, con 100 a 150 imágenes limpias cada una**.
