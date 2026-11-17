@@ -75,16 +75,18 @@ Pruebas hechas en una RTX 4060 (Keras 3 con motor PyTorch, porque TensorFlow no 
 |---|---|---|
 | CNN inicial del NB05 (20 épocas) | ≈ 0,52 | ≈ 1,32 |
 | CNN experimental, hasta 60 épocas + *early stopping* + ReduceLROnPlateau | 0,594 | 1,165 |
-| MobileNetV2 congelada → + *fine-tuning* | 0,972 → 0,981 | 0,090 → 0,063 |
-| **EfficientNetB0 congelada → + *fine-tuning*** | **0,995 → 0,995** | **0,047 → 0,026** |
+| MobileNetV2, receta exacta del NB06 (10 + 10 épocas, fine-tuning desde la capa 100) | 0,967 | 0,095 |
+| **MobileNetV2 ajustada (25 + 15 épocas, early stopping, ReduceLROnPlateau, fine-tuning de las últimas 30 capas)** | **0,981** | **0,063** |
+| EfficientNetB0 + fine-tuning (solo prueba; no se usa porque el curso usa MobileNetV2) | 0,995 | 0,026 |
 
 - Una búsqueda automática de hiperparámetros para CNN desde cero (bloques, filtros, BatchNorm, dropout, lr, batch, *weight decay*, aumento; `scripts/busqueda_gpu.py`) se detuvo por tiempo: en 6 épocas ninguna combinación superó a los modelos del NB05. Con 860 imágenes, una CNN desde cero se queda cerca del 60 %.
-- Por eso el NB05 tiene una **sección 24** con *Transfer Learning* (EfficientNetB0, 25 épocas con la base congelada + 15 de *fine-tuning* de las últimas 30 capas con lr 1e-5, *early stopping*). Guarda `efficientnet_comida_chilena_v1.keras` + `.json`. Las secciones 1–23 siguen siendo la entrega pedida por la guía; la 24 es una mejora que adelanta el NB06.
+- Por eso el NB05 tiene una **sección 24** con *Transfer Learning* usando **MobileNetV2, la misma red de la guía NB06 del profesor** (25 épocas con la base congelada + 15 de *fine-tuning* de las últimas 30 capas con lr 1e-5, `EarlyStopping` y `ReduceLROnPlateau`). Guarda `mobilenetv2_comida_chilena_v1.keras` + `.json`. Las secciones 1–23 siguen siendo la entrega pedida por la guía; la 24 es una mejora que adelanta el NB06.
 - Scripts: `scripts/exportar_split_nb05.py` (crea el `.npz` con la división) y `scripts/probar_transfer_learning.py`. Para usar la GPU en Windows: `pip install torch --index-url https://download.pytorch.org/whl/cu128` y `KERAS_BACKEND=torch` (ya lo fijan los scripts).
 
 ## 7. Cómo ayudar
 
 - Responder en español, con lenguaje simple: el estudiante está aprendiendo.
+- **Usar solo las tecnologías del curso:** TensorFlow/Keras, scikit-learn, pandas, numpy, matplotlib y Google Colab; para Transfer Learning, MobileNetV2 (como en el NB06). PyTorch solo se usó en los scripts locales de prueba, nunca en los notebooks.
 - No cambiar los nombres de carpetas, clases, archivos de modelo ni la división de datos (semilla 42) sin avisar: las respuestas ya escritas dependen de ellos.
 - Si piden algo nuevo (por ejemplo, la guía NB06 de *Transfer Learning*), seguir el mismo estilo: copiar la guía original del profesor, adaptar textos y rutas al dataset de comida chilena, usar la celda que clona el repositorio y agregar al final una sección con evidencias y respuestas a la actividad.
 - Si el usuario pega resultados de Colab, usarlos para completar los **[ … ]** de las respuestas.

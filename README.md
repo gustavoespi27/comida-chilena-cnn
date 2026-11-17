@@ -7,7 +7,7 @@ Proyecto de clasificación de imágenes con redes neuronales convolucionales (CN
 | Notebook | Contenido | Abrir |
 |---|---|---|
 | **NB03** — Preparación del dataset | Exploración, control de calidad, división train/validation/test, normalización y Data Augmentation | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB03_Preparacion_Dataset_Comida_Chilena.ipynb) |
-| **NB05** — CNN | Entrenamiento de dos arquitecturas, curvas, matriz de confusión, métricas por clase y elección del modelo. Sección extra con *Transfer Learning* (EfficientNetB0): ≈ 99 % de *validation accuracy* | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB05_CNN_Comida_Chilena.ipynb) |
+| **NB05** — CNN | Entrenamiento de dos arquitecturas, curvas, matriz de confusión, métricas por clase y elección del modelo. Sección extra con *Transfer Learning* (MobileNetV2, como en el NB06): ≈ 98 % de *validation accuracy* | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB05_CNN_Comida_Chilena.ipynb) |
 
 ## Dataset
 
@@ -40,7 +40,8 @@ Proyecto de clasificación de imágenes con redes neuronales convolucionales (CN
 |---|---|---|
 | CNN inicial (NB05) | ≈ 0,52 | ≈ 1,32 |
 | CNN experimental, 60 épocas + *early stopping* | ≈ 0,59 | ≈ 1,16 |
-| EfficientNetB0 + *fine-tuning* | ≈ 0,995 | ≈ 0,03 |
+| MobileNetV2, receta del NB06 | ≈ 0,967 | ≈ 0,095 |
+| MobileNetV2 con hiperparámetros ajustados | ≈ 0,981 | ≈ 0,063 |
 
 ## Cómo ejecutar
 
