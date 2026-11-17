@@ -7,7 +7,7 @@ Proyecto de clasificación de imágenes con redes neuronales convolucionales (CN
 | Notebook | Contenido | Abrir |
 |---|---|---|
 | **NB03** — Preparación del dataset | Exploración, control de calidad, división train/validation/test, normalización y Data Augmentation | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB03_Preparacion_Dataset_Comida_Chilena.ipynb) |
-| **NB05** — CNN | Entrenamiento de dos arquitecturas, curvas, matriz de confusión, métricas por clase y elección del modelo | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB05_CNN_Comida_Chilena.ipynb) |
+| **NB05** — CNN | Entrenamiento de dos arquitecturas, curvas, matriz de confusión, métricas por clase y elección del modelo. Sección extra con *Transfer Learning* (EfficientNetB0): ≈ 99 % de *validation accuracy* | [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gustavoespi27/comida-chilena-cnn/blob/main/NB05_CNN_Comida_Chilena.ipynb) |
 
 ## Dataset
 
@@ -33,6 +33,14 @@ Proyecto de clasificación de imágenes con redes neuronales convolucionales (CN
 [`fuentes_dataset_comida_chilena.csv`](fuentes_dataset_comida_chilena.csv) registra, para cada imagen, la URL de origen, la página donde se publicó y la búsqueda que la encontró.
 
 > **Derechos de las imágenes:** las fotografías pertenecen a sus respectivos autores y se usan solo con fines académicos. El CSV de fuentes indica el origen de cada una. Si usted es autor de alguna imagen y quiere que se retire, abra un *issue*.
+
+## Resultados
+
+| Modelo | val_accuracy | val_loss |
+|---|---|---|
+| CNN inicial (NB05) | ≈ 0,52 | ≈ 1,32 |
+| CNN experimental, 60 épocas + *early stopping* | ≈ 0,59 | ≈ 1,16 |
+| EfficientNetB0 + *fine-tuning* | ≈ 0,995 | ≈ 0,03 |
 
 ## Cómo ejecutar
 
@@ -60,5 +68,6 @@ comida-chilena-cnn/
 ├── NB05_CNN_Comida_Chilena.ipynb
 ├── dataset_comida_chilena/          # una carpeta por clase
 ├── fuentes_dataset_comida_chilena.csv
-└── scripts/                         # construcción del dataset y generación de los notebooks
+├── CONTEXTO_PARA_IA.md              # resumen del proyecto para darle contexto a un asistente de IA
+└── scripts/                         # dataset, generación de notebooks y pruebas de hiperparámetros
 ```

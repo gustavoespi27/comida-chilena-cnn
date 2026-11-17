@@ -12,3 +12,5 @@ cnn_comida_chilena_*.json
 __pycache__/
 .ipynb_checkpoints/
 comida-chilena-cnn/
+guias_originales/
+split_nb05.npz

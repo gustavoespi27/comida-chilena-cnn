@@ -1,16 +1,28 @@
 """Genera NB03 y NB05 adaptados al dataset de comida chilena a partir de las guías originales.
 
-Uso:  python scripts/generar_notebooks.py <carpeta_con_notebooks_originales>
+Uso:  python scripts/generar_notebooks.py [carpeta_con_notebooks_originales]
+Sin argumento, descarga las guías originales desde el repositorio del curso a guias_originales/.
 Resultado (en la carpeta del proyecto):
   NB03_Preparacion_Dataset_Comida_Chilena.ipynb
   NB05_CNN_Comida_Chilena.ipynb
 """
 import json
 import sys
+import urllib.request
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
-ORIG = Path(sys.argv[1])
+URL_GUIAS = ("https://raw.githubusercontent.com/juliopez/Taller-Fundamentos-Data-Science-Python/"
+             "main/Machine_Learning_2026/03_Notebooks/")
+
+if len(sys.argv) > 1:
+    ORIG = Path(sys.argv[1])
+else:
+    ORIG = BASE / "guias_originales"
+    ORIG.mkdir(exist_ok=True)
+    for nombre in ("NB03_Preparacion_Gestion_Dataset_Imagenes.ipynb", "NB05_Construccion_Entrenamiento_CNN.ipynb"):
+        if not (ORIG / nombre).exists():
+            urllib.request.urlretrieve(URL_GUIAS + nombre, ORIG / nombre)
 
 NB03_IN = ORIG / "NB03_Preparacion_Gestion_Dataset_Imagenes.ipynb"
 NB05_IN = ORIG / "NB05_Construccion_Entrenamiento_CNN.ipynb"
@@ -387,8 +399,117 @@ with open(f"{CARPETA_MODELOS}/cnn_comida_chilena_elegido_{VERSION}.json", "w", e
 ficha_modelo
 '''),
         md(RESPUESTAS_NB05),
-    ])
+    ] + SECCION_TRANSFER)
     guardar(nb, NB05_OUT)
+
+
+SECCION_TRANSFER = [
+    md("## 24. Mejora adicional: Transfer Learning con EfficientNetB0\n\n"
+       "Las CNN entrenadas desde cero quedan limitadas por el tamaño del dataset: con 860 imágenes de entrenamiento "
+       "no alcanzan a aprender bien qué distingue a cada plato. Se probaron de forma automática distintas "
+       "combinaciones de hiperparámetros (bloques, filtros, BatchNorm, dropout, learning rate, batch size, "
+       "*weight decay* y Data Augmentation) y la mejor CNN desde cero llegó a cerca de **59 %** de *validation "
+       "accuracy* con *val_loss* ≈ **1,16** (la CNN experimental entrenada hasta 60 épocas con *early stopping*).\n\n"
+       "Para acercarse al 100 % se usa **Transfer Learning** (tema del NB06): se parte de **EfficientNetB0**, una "
+       "red ya entrenada con 1,2 millones de imágenes de ImageNet, que ya sabe reconocer bordes, texturas y formas. "
+       "Solo se entrena una capa final para los 8 platos y, después, se ajustan con un learning rate muy bajo las "
+       "últimas 30 capas de la red (*fine-tuning*).\n\n"
+       "| Modelo | val_accuracy | val_loss |\n|---|---|---|\n"
+       "| CNN inicial (NB05, 20 épocas) | ≈ 0,52 | ≈ 1,32 |\n"
+       "| CNN experimental, 60 épocas + *early stopping* | ≈ 0,59 | ≈ 1,16 |\n"
+       "| MobileNetV2 + *fine-tuning* | ≈ 0,98 | ≈ 0,06 |\n"
+       "| **EfficientNetB0 + *fine-tuning*** | **≈ 0,995** | **≈ 0,03** |\n\n"
+       "*Valores de las pruebas previas (misma división 80/20, semilla 42). Su ejecución puede variar levemente.*"),
+    code('''from tensorflow.keras.applications import EfficientNetB0
+
+EPOCAS_TL = 25   # etapa 1: solo se entrena la capa final
+EPOCAS_FT = 15   # etapa 2: fine-tuning de las últimas capas
+
+base = EfficientNetB0(input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3), include_top=False, weights="imagenet")
+base.trainable = False   # se congelan los pesos aprendidos en ImageNet
+
+entradas = keras.Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
+x = data_augmentation(entradas)
+x = base(x, training=False)          # EfficientNet normaliza internamente: recibe píxeles 0-255
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dropout(0.30)(x)
+salidas = layers.Dense(NUM_CLASSES, activation="softmax")(x)
+modelo_tl = keras.Model(entradas, salidas, name="efficientnetb0_comida_chilena")
+
+callbacks_tl = [
+    keras.callbacks.EarlyStopping(monitor="val_loss", patience=8, restore_best_weights=True),
+    keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6),
+]
+
+modelo_tl.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001),
+                  loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+history_tl = modelo_tl.fit(train_ds, validation_data=val_ds, epochs=EPOCAS_TL, callbacks=callbacks_tl)
+'''),
+    code('''# Etapa 2: fine-tuning. Se descongelan las últimas 30 capas (sin tocar BatchNormalization)
+base.trainable = True
+for capa in base.layers[:-30]:
+    capa.trainable = False
+for capa in base.layers:
+    if isinstance(capa, layers.BatchNormalization):
+        capa.trainable = False
+
+modelo_tl.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-5),   # learning rate muy bajo
+                  loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+history_ft = modelo_tl.fit(train_ds, validation_data=val_ds, epochs=EPOCAS_FT, callbacks=callbacks_tl)
+
+tl_loss, tl_accuracy = modelo_tl.evaluate(val_ds, verbose=0)
+print(f"EfficientNetB0 + fine-tuning -> validation accuracy: {tl_accuracy:.4f} | validation loss: {tl_loss:.4f}")
+'''),
+    code('''# Curvas de ambas etapas y comparación con las CNN desde cero
+hist = {k: history_tl.history[k] + history_ft.history[k] for k in ("accuracy", "val_accuracy", "loss", "val_loss")}
+corte = len(history_tl.history["loss"])
+
+fig, ejes = plt.subplots(1, 2, figsize=(12, 4))
+for eje, metrica in zip(ejes, ("accuracy", "loss")):
+    eje.plot(hist[metrica], label=f"train {metrica}")
+    eje.plot(hist[f"val_{metrica}"], label=f"val {metrica}")
+    eje.axvline(corte - 0.5, color="gray", linestyle="--", label="inicio fine-tuning")
+    eje.set_title(f"EfficientNetB0 - {metrica}"); eje.set_xlabel("Época"); eje.legend()
+plt.tight_layout(); plt.show()
+
+y_true_tl, y_pred_tl = predecir(modelo_tl)
+print(classification_report(y_true_tl, y_pred_tl, target_names=class_names, digits=3))
+
+resumen_final = pd.DataFrame({
+    "modelo": ["CNN inicial", "CNN experimental", "EfficientNetB0 + fine-tuning"],
+    "val_accuracy": [round(val_accuracy, 4), round(exp_accuracy, 4), round(tl_accuracy, 4)],
+    "val_loss": [round(model.evaluate(val_ds, verbose=0)[0], 4), round(modelo_experimental.evaluate(val_ds, verbose=0)[0], 4), round(tl_loss, 4)],
+    "parametros": [model.count_params(), modelo_experimental.count_params(), modelo_tl.count_params()],
+})
+display(resumen_final)
+'''),
+    code('''# Guardar el modelo de Transfer Learning con su ficha
+RUTA_TL = f"{CARPETA_MODELOS}/efficientnet_comida_chilena_{VERSION}.keras"
+modelo_tl.save(RUTA_TL)
+ficha_tl = {
+    "version": VERSION,
+    "fecha": str(date.today()),
+    "modelo": "EfficientNetB0 (ImageNet) + fine-tuning de las últimas 30 capas",
+    "archivo": RUTA_TL,
+    "clases_en_orden": class_names,
+    "tamano_entrada": list(IMG_SIZE),
+    "parametros": int(modelo_tl.count_params()),
+    "entrenamiento": f"{len(history_tl.history['loss'])} épocas (lr 0.001) + {len(history_ft.history['loss'])} de fine-tuning (lr 1e-5), early stopping",
+    "division": "80 % train / 20 % validation, seed 42",
+    "validation_accuracy": round(float(tl_accuracy), 4),
+    "validation_loss": round(float(tl_loss), 4),
+}
+with open(f"{CARPETA_MODELOS}/efficientnet_comida_chilena_{VERSION}.json", "w", encoding="utf-8") as f:
+    json.dump(ficha_tl, f, ensure_ascii=False, indent=2)
+ficha_tl
+'''),
+    md("**Conclusión.** El Transfer Learning supera ampliamente a las CNN entrenadas desde cero, con menos esfuerzo de "
+       "entrenamiento: reutiliza lo que la red aprendió de millones de imágenes y solo adapta la parte final a los 8 "
+       "platos chilenos. Las CNN de las secciones anteriores siguen siendo el resultado pedido por la guía NB05; este "
+       "modelo es una mejora que adelanta el NB06. Con 214 imágenes de validación, cada error equivale a 0,5 puntos de "
+       "*accuracy*, por lo que para confirmar el resultado conviene evaluarlo también con un conjunto *test* "
+       "independiente (como el del NB03)."),
+]
 
 
 RESPUESTAS_NB05 = "### 23.5 Respuestas\n\n__RESPUESTAS_NB05__\n"
