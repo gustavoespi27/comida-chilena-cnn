@@ -422,8 +422,9 @@ SECCION_TRANSFER = [
        "| CNN inicial (NB05, 20 épocas) | ≈ 0,52 | ≈ 1,32 |\n"
        "| CNN experimental, 60 épocas + *early stopping* | ≈ 0,59 | ≈ 1,16 |\n"
        "| MobileNetV2, receta del NB06 (10 + 10 épocas) | ≈ 0,967 | ≈ 0,095 |\n"
-       "| **MobileNetV2 con hiperparámetros ajustados** | **≈ 0,981** | **≈ 0,063** |\n\n"
-       "*Valores de las pruebas previas (misma división 80/20, semilla 42). Su ejecución puede variar levemente.*"),
+       "| **MobileNetV2 con hiperparámetros ajustados** | **≈ 0,96 – 0,98** | **≈ 0,06 – 0,09** |\n\n"
+       "*Valores de las pruebas previas (misma división 80/20, semilla 42); los rangos corresponden a distintas "
+       "ejecuciones. Los resultados de esta ejecución aparecen en la tabla `resumen_final` más abajo.*"),
     code('''base_model = keras.applications.MobileNetV2(
     input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3),
     include_top=False,
@@ -516,8 +517,10 @@ ficha_tl
 '''),
     md("**Conclusión.** El Transfer Learning supera ampliamente a las CNN entrenadas desde cero: reutiliza lo que "
        "MobileNetV2 aprendió de millones de imágenes y solo adapta la parte final a los 8 platos chilenos. Ajustar "
-       "las épocas, el learning rate y las capas del *fine-tuning* mejoró la receta base del NB06 de ≈ 96,7 % a "
-       "≈ 98,1 % de *accuracy* y bajó la *loss* de ≈ 0,095 a ≈ 0,063. Las CNN de las secciones anteriores siguen siendo "
+       "las épocas, el learning rate y las capas del *fine-tuning* bajó la *loss* respecto de la receta base del NB06 "
+       "(≈ 0,095 → entre 0,06 y 0,09); la *accuracy* queda en un rango similar (≈ 96 – 98 %), porque con 214 imágenes de "
+       "validación la diferencia es de una a cuatro fotos. Una *loss* menor indica que el modelo acierta con más "
+       "confianza. Las CNN de las secciones anteriores siguen siendo "
        "el resultado pedido por la guía NB05; este modelo es una mejora que adelanta el NB06. Con 214 imágenes de "
        "validación, cada error equivale a 0,5 puntos de *accuracy*, por lo que conviene confirmar el resultado con "
        "un conjunto *test* independiente (como el del NB03)."),
