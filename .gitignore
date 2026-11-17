@@ -1,0 +1,14 @@
+# Material de trabajo que no forma parte del dataset final
+dataset_crudo/
+dataset_descartes/
+revision/
+
+# Modelos entrenados (se guardan en Google Drive o en esta carpeta al ejecutar localmente)
+modelos/
+*.keras
+cnn_comida_chilena_*.json
+
+# Python / Jupyter
+__pycache__/
+.ipynb_checkpoints/
+comida-chilena-cnn/
